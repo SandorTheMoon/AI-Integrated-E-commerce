@@ -1,32 +1,129 @@
-<div class="page-container">
-    <div class="response-container">
-        <p>Chatbot:</p>
-        <br />
-        <p>{{ html_response|safe }}</p>
+<div class="chat-container">
+    <div class="chat-window">
+        <div class="message bot">
+            <span class="sender">ChatGPT:</span>
+            <div id="typed-text" class="text"></div>
+        </div>
     </div>
 
-
-    <form method="get">
+    <form method="get" class="input-area">
         {% csrf_token %}
-
         {{ form.as_p }}
-
-        <button type="submit">Submit</button>
+        <button type="submit" class="send-button">Send</button>
     </form>
 </div>
 
-<style>
-    body {
-        color: white;
-        background-color: rgb(37, 37, 37);
+<script>
+    const fullHTML = `{{ html_response|safe|escapejs }}`;
+    const typedTextDiv = document.getElementById("typed-text");
+
+    let currentHTML = "";
+    let index = 0;
+
+    function typeWriter() {
+        if (index < fullHTML.length) {
+            currentHTML += fullHTML.charAt(index);
+            typedTextDiv.innerHTML = currentHTML;
+            index++;
+            setTimeout(typeWriter, 5); // typing speed
+        }
     }
 
-    .page-container {
-        font-family: Arial;
-        
+    window.addEventListener("DOMContentLoaded", typeWriter);
+</script>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: #343541;
+        color: #fff;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .chat-container {
         display: flex;
         flex-direction: column;
+        justify-content: flex-end;
         align-items: center;
-        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .chat-window {
+        width: 100%;
+        max-width: 700px;
+        background-color: #444654;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        overflow-y: auto;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .message {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #3e3f4b;
+        border-radius: 10px;
+    }
+
+    .message.bot {
+        background-color: #444654;
+    }
+
+    .sender {
+        font-weight: bold;
+        margin-bottom: 5px;
+        display: block;
+        color: #10a37f;
+    }
+
+    .text {
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
+
+    .input-area {
+        width: 100%;
+        max-width: 700px;
+        display: flex;
+        gap: 10px;
+        flex-direction: column;
+    }
+
+    .input-area p {
+        margin: 0;
+    }
+
+    .send-button {
+        align-self: flex-end;
+        padding: 10px 20px;
+        background-color: #10a37f;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .send-button:hover {
+        background-color: #0d8c6d;
+    }
+
+    input, textarea, select {
+        width: 100%;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        background-color: #565869;
+        color: white;
+    }
+
+    input:focus, textarea:focus, select:focus {
+        outline: none;
+        background-color: #6b6d81;
     }
 </style>
