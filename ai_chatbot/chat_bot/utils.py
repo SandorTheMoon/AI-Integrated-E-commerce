@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 
 load_dotenv()
-genai.configure(api_key=os.environ.get("API_KEY"))
+genai.configure(api_key=os.environ.get("MY_GENAI_API_WOW"))
 
 generation_config = {
     "temperature": 1,
@@ -13,7 +13,7 @@ generation_config = {
     "response_mime_type": "text/plain",
 }
 
-file_path = "./data/data.txt"
+file_path = "./chat_bot/data/data.txt"
 with open(file_path, "r") as file:
     file_contents = file.read()
 
