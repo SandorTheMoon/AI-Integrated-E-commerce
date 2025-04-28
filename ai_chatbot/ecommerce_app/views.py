@@ -1,7 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from .forms import RegistrationForm, ShippingAddressForm, Account
+from .models import Product
 
 # Create your views here.
 def welcome_page(request):
@@ -57,3 +59,16 @@ def login_page(request):
         if 'next' in request.POST:
             return redirect(request.POST.get('next'))
         return render(request, 'UsersAuthentication/login.html')
+    
+
+# @login_required(login_url="/login/")
+def logout_account(request):
+    if request.method == 'POST':
+        logout(request)
+        return redirect('login')
+    
+
+# @login_required(login_url="/login/")
+def home_page(request):
+    products = Product.objects.all()
+    return render(request, 'Home/Home.html', {'products': products })

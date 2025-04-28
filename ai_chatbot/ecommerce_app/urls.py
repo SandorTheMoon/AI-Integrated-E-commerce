@@ -5,7 +5,10 @@ from . import views
 
 urlpatterns = [
     path("", views.welcome_page, name="welcome"),   
-    path("signup/", views.signup_page, name="signup"),
+    path("csignup/", views.signup_page, name="signup"),
     path("login/", views.login_page, name="login"),
+    path("logout/", views.logout_account, name="logout"),
+
+    path("home/", views.home_page, name="home"),
     
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
