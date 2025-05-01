@@ -35,3 +35,19 @@ class ShippingAddressForm(forms.ModelForm):
     class Meta:
         model = ShippingAddress
         fields = ['region', 'province', 'city', 'barangay', 'postal_code', 'home_address']
+
+
+
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = ['product_picture', 'product_name', 'product_price', 'product_origin', 'product_description']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        product_picture = cleaned_data.get('product_picture')
+        
+        if not product_picture:
+            self.add_error('product_picture', 'This field is required.')
+
+        return cleaned_data

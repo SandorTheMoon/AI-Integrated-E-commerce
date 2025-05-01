@@ -11,4 +11,6 @@ urlpatterns = [
 
     path("home/", views.home_page, name="home"),
     
+    path("addproduct/", views.addproduct_page, name="addproduct"),
+    
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
