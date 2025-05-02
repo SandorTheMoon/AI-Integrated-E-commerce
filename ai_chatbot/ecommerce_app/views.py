@@ -74,6 +74,12 @@ def home_page(request):
     return render(request, 'Home/Home.html', {'products': products })
 
 
+# @login_required(login_url="/login/")
+def product_page(request, pk):
+    product = Product.objects.get(id=pk)
+    return render(request, "Home/productpage.html", {'product': product})
+
+
 
 # @login_required(login_url="/login/")
 def addproduct_page(request):
