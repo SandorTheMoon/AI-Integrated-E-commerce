@@ -1,9 +1,9 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from .forms import RegistrationForm, ShippingAddressForm, Account, ProductForm
-from .models import Product
+from .models import Product, CartItem
 
 # Create your views here.
 def welcome_page(request):
@@ -74,10 +74,65 @@ def home_page(request):
     return render(request, 'Home/Home.html', {'products': products })
 
 
+def navbarAndfooter(request):
+    return render(request, "Home/navbarAndfooter.html")
+
+
 # @login_required(login_url="/login/")
 def product_page(request, pk):
     product = Product.objects.get(id=pk)
     return render(request, "Home/productpage.html", {'product': product})
+
+
+# @login_required(login_url="/login/")
+def add_to_cart(request, product_id):
+    product = get_object_or_404(Product, pk=product_id)
+    
+    # Check if the product is already in the cart
+    cart_item = CartItem.objects.filter(user=request.user, product=product).first()
+    
+    if cart_item:
+        # If the product is already in the cart, increment the quantity
+        cart_item.quantity += 1
+        cart_item.save()
+    else:
+        # If the product is not in the cart, create a new cart item
+        CartItem.objects.create(user=request.user, product=product, quantity=1)
+    
+    return redirect('cart')
+
+
+# @login_required(login_url="/login/")
+def cart_page(request):
+    cart_items = CartItem.objects.filter(user=request.user)
+    total_price = sum(item.product.product_price * item.quantity for item in cart_items)
+    return render(request, "Home/cart.html", {'cart_items': cart_items, 'total_price': total_price})
+
+
+# @login_required(login_url="/login/")
+def remove_from_cart(request, cart_item_id):
+    cart_item = get_object_or_404(CartItem, id=cart_item_id, user=request.user)
+    cart_item.delete()
+    return redirect('cart')
+
+
+# @login_required(login_url="/login/")
+def update_cart(request):
+    if request.method == 'POST':
+        for item in request.user.cartitem_set.all():
+            quantity = request.POST.get(f'quantity_{item.id}')
+            if quantity is not None:
+                item.quantity = int(quantity)
+                item.save()
+                print("saved")
+            
+            print("found item")
+        
+        print("method posted")
+    
+    print("no method")
+    return redirect('cart')
+
 
 
 
