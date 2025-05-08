@@ -5,7 +5,7 @@ from .utils import ask_gemini
 from .forms import UserInput
 
 
-def home(request):
+def chatbot(request):
     html_response = ''
     form = UserInput(request.GET)
 
