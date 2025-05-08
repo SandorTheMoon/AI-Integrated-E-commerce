@@ -1,9 +1,10 @@
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
+from ecommerce_app.models import Product
 
 load_dotenv()
-genai.configure(api_key=os.environ.get("MY_GENAI_API_WOW"))
+genai.configure(api_key=os.environ.get("API_KEY"))
 
 generation_config = {
     "temperature": 1,
@@ -13,12 +14,21 @@ generation_config = {
     "response_mime_type": "text/plain",
 }
 
-file_path = "./chat_bot/data/data.txt"
-with open(file_path, "r") as file:
-    file_contents = file.read()
+# Dynamically fetch and format product data
+products = Product.objects.select_related("account").all()
+product_descriptions = []
 
+for product in products:
+    product_descriptions.append(
+        f"Product ID: {product.id}, Name: {product.product_name}, Price: {product.product_price}, Origin: {product.product_origin}, Description: {product.product_description}"
+        f"Account: {product.account.username if product.account else 'N/A'}"
+    )
+
+product_data = " | ".join(product_descriptions)
+
+# Build system instruction using dynamic product data
 system_instruction = (
-    f"For your reference, these are the only products being sold in this app: {file_contents} only."
+    f"For your reference, these are the only products being sold in this app: {product_data}, use this as a reference information. If a user ask for the url link redirecting the product, use this format: http://127.0.0.1:8000/productpage/replace_this_with_product_id"
     "You are a helpful, friendly, and factual chatbot support assistant for a rice-selling e-commerce app in the Philippines. "
     "Your job is to guide customers in choosing the most suitable rice variety based on their preferences such as taste, texture, dietary needs, and budget. "
     "You also provide information about the benefits and downsides of each rice type. "
@@ -36,6 +46,4 @@ model = genai.GenerativeModel(
 
 def ask_gemini(user_input: str):
     response = model.generate_content(contents=user_input)
-
-    # print(response.text)
     return response.text
