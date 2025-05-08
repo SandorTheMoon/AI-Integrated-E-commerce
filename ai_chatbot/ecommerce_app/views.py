@@ -3,9 +3,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from .forms import RegistrationForm, ShippingAddressForm, Account, ProductForm
-from .models import Product, CartItem
+from .models import Product, CartItem, Order
 
-# Create your views here.
+# - - - H O M E - - -
 def welcome_page(request):
     return render(request, "UsersAuthentication/welcome.html")
 
@@ -134,8 +134,69 @@ def update_cart(request):
     return redirect('cart')
 
 
+# @login_required(login_url="/login/")
+def profile_page(request):
+    if 'next' in request.POST:
+        return redirect(request.POST.get('next'))
+    
+    else:
+        return render(request, "Home/profile.html")
 
 
+
+# C H E C K O U T
+# @login_required(login_url="/login/")
+def checkout_page(request):
+    cart_items = CartItem.objects.filter(user=request.user)
+    total_price = sum(item.product.product_price * item.quantity for item in cart_items)
+    return render(request, "Checkout/checkout.html", {'total_price': total_price, 'user': request.user})
+
+# @login_required(login_url="/login/")
+def ordersummary_page(request):
+    if request.method == 'POST':
+        # Process user information
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+
+        # Process payment method
+        payment_method = request.POST.get('payment_method')
+
+        # Process card details if card payment selected
+        if payment_method == 'card_payment':
+            card_number = request.POST.get('card_number')
+            expiry_date = request.POST.get('expiry_date')
+            cvv = request.POST.get('cvv')
+
+        # Process order
+        cart_items = CartItem.objects.filter(user=request.user)
+        total_price = sum(item.product.product_price * item.quantity for item in cart_items)
+
+        if payment_method in ['cash_on_delivery', 'card_payment']:
+            # Create an order for each item in the cart
+            for item in cart_items:
+                seller_account = Account.objects.get(user=item.product.account)
+                Order.objects.create(
+                    user=request.user,
+                    product=item.product,
+                    quantity=item.quantity,
+                    total_price=item.product.product_price * item.quantity,
+                    payment_method=payment_method,
+                    seller=seller_account
+                )
+            cart_items.delete()  # Empty the cart after checkout
+            messages.success(request, 'Order placed successfully!')
+            return redirect('home')
+
+    # If GET request or form submission fails, render the checkout page with cart items
+    cart_items = CartItem.objects.filter(user=request.user)
+    total_price = sum(item.product.product_price * item.quantity for item in cart_items)
+    
+    return render(request, 'Checkout/ordersummary.html', {'cart_items': cart_items, 'total_price': total_price, 'user': request.user})
+
+
+
+# - - - P R O F I L E - - -
 # @login_required(login_url="/login/")
 def addproduct_page(request):
     if request.method == 'POST':
