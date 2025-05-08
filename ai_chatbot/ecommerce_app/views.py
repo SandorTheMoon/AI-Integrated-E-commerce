@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from .forms import RegistrationForm, ShippingAddressForm, Account, ProductForm, EditProfileForm
-from .models import Product, CartItem, Order
+from .models import Product, CartItem, Order, ShippingAddress
 
 # - - - H O M E - - -
 def welcome_page(request):
@@ -259,3 +259,28 @@ def my_orders(request):
     user_orders = Order.objects.filter(user=request.user)
 
     return render(request, 'Profile/my_orders.html', {'user_orders': user_orders})
+
+
+# @login_required(login_url="/login/")
+def seller_orders(request):
+    seller_account = request.user.account
+    
+    # Get all orders where the current user is the seller
+    seller_orders = Order.objects.filter(seller=seller_account)
+
+    return render(request, 'Profile/seller_orders.html', {'seller_orders': seller_orders})
+
+
+# @login_required(login_url="/login/")
+def order_details(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    user_shipping_address = ShippingAddress.objects.get(account=order.user)
+    
+    if request.method == 'POST':
+        status = request.POST.get('status')
+        order.status = status
+        order.save()
+        messages.success(request, 'Order status updated successfully!')
+        return redirect('order_details', order_id=order_id)
+    
+    return render(request, 'Profile/order_details.html', {'order': order, 'user_shipping_address': user_shipping_address})
