@@ -252,3 +252,10 @@ def addproduct_page(request):
         print("GET request, product form initialized")
 
     return render(request, 'Profile/addproduct.html', {'add_product_form': add_product_form})
+
+
+# login_required(login_url="/login/")
+def my_orders(request):
+    user_orders = Order.objects.filter(user=request.user)
+
+    return render(request, 'Profile/my_orders.html', {'user_orders': user_orders})
