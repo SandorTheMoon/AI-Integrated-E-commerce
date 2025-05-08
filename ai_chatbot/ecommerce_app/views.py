@@ -2,10 +2,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
-from .forms import RegistrationForm, ShippingAddressForm, Account, ProductForm
-from .models import Product, CartItem
+from .forms import RegistrationForm, ShippingAddressForm, Account, ProductForm, EditProfileForm
+from .models import Product, CartItem, Order, ShippingAddress
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import io
+import base64
 
-# Create your views here.
+# - - - H O M E - - -
 def welcome_page(request):
     return render(request, "UsersAuthentication/welcome.html")
 
@@ -134,7 +139,106 @@ def update_cart(request):
     return redirect('cart')
 
 
+# @login_required(login_url="/login/")
+def profile_page(request):
+    if 'next' in request.POST:
+        return redirect(request.POST.get('next'))
+    
+    else:
+        return render(request, "Home/profile.html")
 
+
+
+# C H E C K O U T
+# @login_required(login_url="/login/")
+def checkout_page(request):
+    cart_items = CartItem.objects.filter(user=request.user)
+    total_price = sum(item.product.product_price * item.quantity for item in cart_items)
+    return render(request, "Checkout/checkout.html", {'total_price': total_price, 'user': request.user})
+
+# @login_required(login_url="/login/")
+def ordersummary_page(request):
+    if request.method == 'POST':
+        # Process user information
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+
+        # Process payment method
+        payment_method = request.POST.get('payment_method')
+
+        # Process card details if card payment selected
+        if payment_method == 'card_payment':
+            card_number = request.POST.get('card_number')
+            expiry_date = request.POST.get('expiry_date')
+            cvv = request.POST.get('cvv')
+
+        # Process order
+        cart_items = CartItem.objects.filter(user=request.user)
+        total_price = sum(item.product.product_price * item.quantity for item in cart_items)
+
+        if payment_method in ['cash_on_delivery', 'card_payment']:
+            # Create an order for each item in the cart
+            for item in cart_items:
+                seller_account = Account.objects.get(user=item.product.account)
+                Order.objects.create(
+                    user=request.user,
+                    product=item.product,
+                    quantity=item.quantity,
+                    total_price=item.product.product_price * item.quantity,
+                    payment_method=payment_method,
+                    seller=seller_account
+                )
+            cart_items.delete()  # Empty the cart after checkout
+            messages.success(request, 'Order placed successfully!')
+            return redirect('home')
+
+    # If GET request or form submission fails, render the checkout page with cart items
+    cart_items = CartItem.objects.filter(user=request.user)
+    total_price = sum(item.product.product_price * item.quantity for item in cart_items)
+    
+    return render(request, 'Checkout/ordersummary.html', {'cart_items': cart_items, 'total_price': total_price, 'user': request.user})
+
+
+
+# - - - P R O F I L E - - -
+# @login_required(login_url="/login/")
+def editprofile_page(request):
+    current_user = request.user
+    shipping_address = current_user.shippingaddress_set.first()
+
+    user_form = EditProfileForm(instance=current_user)
+    address_form = ShippingAddressForm(instance=shipping_address)
+
+    if request.method == 'POST':
+        user_form = EditProfileForm (request.POST, instance=current_user)
+        address_form = ShippingAddressForm(request.POST, instance=shipping_address)
+
+        if user_form.is_valid() and address_form.is_valid():
+            user_form.save()
+            address_form.save()
+            login(request, current_user)
+            return redirect('profile')
+        
+        else:
+
+            print("not valid")
+            print("User Form Errors:")
+            for field, errors in user_form.errors.items():
+                for error in errors:
+                    print(f"{field}: {error}")
+
+            print("Address Form Errors:")
+            for field, errors in address_form.errors.items():
+                for error in errors:
+                    print(f"{field}: {error}")
+    
+    else:
+        user_form = EditProfileForm(instance=current_user)
+        address_form = ShippingAddressForm(instance=shipping_address)
+
+    return render(request, 'Profile/editprofile.html', {'user_form': user_form, 'address_form': address_form})
+                  
 
 # @login_required(login_url="/login/")
 def addproduct_page(request):
@@ -153,3 +257,120 @@ def addproduct_page(request):
         print("GET request, product form initialized")
 
     return render(request, 'Profile/addproduct.html', {'add_product_form': add_product_form})
+
+
+# login_required(login_url="/login/")
+def my_orders(request):
+    user_orders = Order.objects.filter(user=request.user)
+
+    return render(request, 'Profile/my_orders.html', {'user_orders': user_orders})
+
+
+# @login_required(login_url="/login/")
+def seller_orders(request):
+    seller_account = request.user.account
+    
+    # Get all orders where the current user is the seller
+    seller_orders = Order.objects.filter(seller=seller_account)
+
+    return render(request, 'Profile/seller_orders.html', {'seller_orders': seller_orders})
+
+
+# @login_required(login_url="/login/")
+def order_details(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    user_shipping_address = ShippingAddress.objects.get(account=order.user)
+    
+    if request.method == 'POST':
+        status = request.POST.get('status')
+        order.status = status
+        order.save()
+        messages.success(request, 'Order status updated successfully!')
+        return redirect('order_details', order_id=order_id)
+    
+    return render(request, 'Profile/order_details.html', {'order': order, 'user_shipping_address': user_shipping_address})
+
+
+# @login_required(login_url="/login/")
+def seller_analytics(request):
+    seller_account = request.user.account
+
+    # Fetch order data
+    total_orders = Order.objects.filter(seller=seller_account).count()
+    orders_to_pack = Order.objects.filter(seller=seller_account, status=1).count()
+    orders_to_ship = Order.objects.filter(seller=seller_account, status=2).count()
+    orders_to_deliver = Order.objects.filter(seller=seller_account, status=3).count()
+
+    # Data for the pie chart
+    data = [orders_to_pack, orders_to_ship, orders_to_deliver]
+    labels = ['Orders to Pack', 'Orders to Ship', 'Orders to Deliver']
+    colors = ['#4CAF50', '#2196F3', '#FFC107']  # Professional dashboard colors
+
+    # Handle cases where all data is zero
+    if sum(data) == 0:
+        data = [1, 1, 1]
+        labels = ['No Orders', 'No Orders', 'No Orders']
+        colors = ['#D3D3D3', '#D3D3D3', '#D3D3D3']
+
+    # Explode the largest slice
+    explode = [0.1 if x == max(data) else 0 for x in data]
+
+    # Generate the pie chart
+    fig, ax = plt.subplots(figsize=(10, 8))  # Increased figure size
+    fig.subplots_adjust(top=0.8)  # Add extra space at the top of the chart
+    wedges, _, autotexts = ax.pie(
+        data,
+        autopct='%1.1f%%',
+        colors=colors,
+        explode=explode,
+        textprops={'fontsize': 14, 'weight': 'bold', 'color': 'black'},  # Bold and larger text
+        startangle=140,
+        shadow=True,  # Add shadow for 3D effect
+    )
+
+    # Add title at the top
+    ax.set_title(
+        "ORDER STATUS",
+        fontsize=20,  # Increased font size for the title
+        fontweight='bold',
+        color='black',
+        pad=30,  # Position the title slightly higher
+    )
+
+    # Customize the percentage text
+    for autotext in autotexts:
+        autotext.set_color('black')
+        autotext.set_fontsize(16)  # Slightly larger percentage text
+        autotext.set_fontweight('bold')
+
+    # Add a legend at the bottom without a title
+    legend = ax.legend(
+        wedges, labels,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.25),  # Adjusted position for larger chart
+        fontsize=14,  # Larger legend text
+        ncol=3,  # Arrange legend items horizontally
+        frameon=False,  # No border around the legend
+    )
+
+    # Tight layout for dashboards
+    plt.tight_layout(pad=2)
+
+    # Save it to a BytesIO object
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', dpi=150)  # High resolution for dashboards
+    plt.close(fig)
+    buf.seek(0)
+
+    # Encode the BytesIO object in base64 and pass it to the template
+    image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+    context = {
+        'image_base64': image_base64,
+        'total_orders': total_orders,
+        'orders_to_pack': orders_to_pack,
+        'orders_to_ship': orders_to_ship,
+        'orders_to_deliver': orders_to_deliver,
+    }
+
+    return render(request, 'Profile/seller_analytics.html', context)
