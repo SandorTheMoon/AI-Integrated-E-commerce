@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
-from .forms import RegistrationForm, ShippingAddressForm, Account, ProductForm
+from .forms import RegistrationForm, ShippingAddressForm, Account, ProductForm, EditProfileForm
 from .models import Product, CartItem, Order
 
 # - - - H O M E - - -
@@ -197,6 +197,44 @@ def ordersummary_page(request):
 
 
 # - - - P R O F I L E - - -
+# @login_required(login_url="/login/")
+def editprofile_page(request):
+    current_user = request.user
+    shipping_address = current_user.shippingaddress_set.first()
+
+    user_form = EditProfileForm(instance=current_user)
+    address_form = ShippingAddressForm(instance=shipping_address)
+
+    if request.method == 'POST':
+        user_form = EditProfileForm (request.POST, instance=current_user)
+        address_form = ShippingAddressForm(request.POST, instance=shipping_address)
+
+        if user_form.is_valid() and address_form.is_valid():
+            user_form.save()
+            address_form.save()
+            login(request, current_user)
+            return redirect('profile')
+        
+        else:
+
+            print("not valid")
+            print("User Form Errors:")
+            for field, errors in user_form.errors.items():
+                for error in errors:
+                    print(f"{field}: {error}")
+
+            print("Address Form Errors:")
+            for field, errors in address_form.errors.items():
+                for error in errors:
+                    print(f"{field}: {error}")
+    
+    else:
+        user_form = EditProfileForm(instance=current_user)
+        address_form = ShippingAddressForm(instance=shipping_address)
+
+    return render(request, 'Profile/editprofile.html', {'user_form': user_form, 'address_form': address_form})
+                  
+
 # @login_required(login_url="/login/")
 def addproduct_page(request):
     if request.method == 'POST':

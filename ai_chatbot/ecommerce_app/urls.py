@@ -20,6 +20,7 @@ urlpatterns = [
     path("ordersummary/", views.ordersummary_page, name="ordersummary"),
     path("ordersummary/checkout/", views.checkout_page, name="checkout"),
 
+    path("editprofile/", views.editprofile_page, name="editprofile"),
     path("addproduct/", views.addproduct_page, name="addproduct"),
 
     
