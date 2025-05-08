@@ -4,6 +4,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from .forms import RegistrationForm, ShippingAddressForm, Account, ProductForm, EditProfileForm
 from .models import Product, CartItem, Order, ShippingAddress
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import io
+import base64
 
 # - - - H O M E - - -
 def welcome_page(request):
@@ -284,3 +289,88 @@ def order_details(request, order_id):
         return redirect('order_details', order_id=order_id)
     
     return render(request, 'Profile/order_details.html', {'order': order, 'user_shipping_address': user_shipping_address})
+
+
+# @login_required(login_url="/login/")
+def seller_analytics(request):
+    seller_account = request.user.account
+
+    # Fetch order data
+    total_orders = Order.objects.filter(seller=seller_account).count()
+    orders_to_pack = Order.objects.filter(seller=seller_account, status=1).count()
+    orders_to_ship = Order.objects.filter(seller=seller_account, status=2).count()
+    orders_to_deliver = Order.objects.filter(seller=seller_account, status=3).count()
+
+    # Data for the pie chart
+    data = [orders_to_pack, orders_to_ship, orders_to_deliver]
+    labels = ['Orders to Pack', 'Orders to Ship', 'Orders to Deliver']
+    colors = ['#4CAF50', '#2196F3', '#FFC107']  # Professional dashboard colors
+
+    # Handle cases where all data is zero
+    if sum(data) == 0:
+        data = [1, 1, 1]
+        labels = ['No Orders', 'No Orders', 'No Orders']
+        colors = ['#D3D3D3', '#D3D3D3', '#D3D3D3']
+
+    # Explode the largest slice
+    explode = [0.1 if x == max(data) else 0 for x in data]
+
+    # Generate the pie chart
+    fig, ax = plt.subplots(figsize=(10, 8))  # Increased figure size
+    fig.subplots_adjust(top=0.8)  # Add extra space at the top of the chart
+    wedges, _, autotexts = ax.pie(
+        data,
+        autopct='%1.1f%%',
+        colors=colors,
+        explode=explode,
+        textprops={'fontsize': 14, 'weight': 'bold', 'color': 'black'},  # Bold and larger text
+        startangle=140,
+        shadow=True,  # Add shadow for 3D effect
+    )
+
+    # Add title at the top
+    ax.set_title(
+        "ORDER STATUS",
+        fontsize=20,  # Increased font size for the title
+        fontweight='bold',
+        color='black',
+        pad=30,  # Position the title slightly higher
+    )
+
+    # Customize the percentage text
+    for autotext in autotexts:
+        autotext.set_color('black')
+        autotext.set_fontsize(16)  # Slightly larger percentage text
+        autotext.set_fontweight('bold')
+
+    # Add a legend at the bottom without a title
+    legend = ax.legend(
+        wedges, labels,
+        loc="lower center",
+        bbox_to_anchor=(0.5, -0.25),  # Adjusted position for larger chart
+        fontsize=14,  # Larger legend text
+        ncol=3,  # Arrange legend items horizontally
+        frameon=False,  # No border around the legend
+    )
+
+    # Tight layout for dashboards
+    plt.tight_layout(pad=2)
+
+    # Save it to a BytesIO object
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', dpi=150)  # High resolution for dashboards
+    plt.close(fig)
+    buf.seek(0)
+
+    # Encode the BytesIO object in base64 and pass it to the template
+    image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+    context = {
+        'image_base64': image_base64,
+        'total_orders': total_orders,
+        'orders_to_pack': orders_to_pack,
+        'orders_to_ship': orders_to_ship,
+        'orders_to_deliver': orders_to_deliver,
+    }
+
+    return render(request, 'Profile/seller_analytics.html', context)
