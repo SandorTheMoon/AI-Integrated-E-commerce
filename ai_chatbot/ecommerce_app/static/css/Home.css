@@ -14,7 +14,7 @@ nav {
     align-items: center;
     height: 70px;
     background-color: #006400;
-    z-index: 1;
+    z-index: 99;
 }
 
 .LeftSide {
@@ -38,7 +38,7 @@ nav {
 
 
 .RightSide {
-    margin-right: 10px;
+    margin-right: 20px;
 }
 
 #FooterButtons {
