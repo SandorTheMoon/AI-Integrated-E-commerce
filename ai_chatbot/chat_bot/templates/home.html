@@ -1,10 +1,12 @@
 {% include "Home/navbarAndfooter.html" %}
 <div class="chat-container">
     <div class="chat-window">
-        <div class="message bot">
-            <span class="sender">Kababayan:</span>
-            <div id="typed-text" class="text"></div>
-        </div>
+        {% for chat in chat_history %}
+            <div class="message {% if chat.sender == 'Kababayan' %}Kababayan{% endif %}">
+                <span class="sender">{{ chat.sender }}:</span>
+                <div class="text">{{ chat.message|safe }}</div>
+            </div>
+        {% endfor %}
     </div>
 
     <form method="get" class="input-area">
