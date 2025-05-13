@@ -1,14 +1,18 @@
+{% include "Home/navbarAndfooter.html" %}
 <div class="chat-container">
     <div class="chat-window">
-        <div class="message bot">
-            <span class="sender">Kababayan:</span>
-            <div id="typed-text" class="text"></div>
-        </div>
+        {% for chat in chat_history %}
+            <div class="message {% if chat.sender == 'Kababayan' %}Kababayan{% endif %}">
+                <span class="sender">{{ chat.sender }}:</span>
+                <div class="text">{{ chat.message|safe }}</div>
+            </div>
+        {% endfor %}
     </div>
 
     <form method="get" class="input-area">
         {% csrf_token %}
-        {{ form.as_p }}
+        <label for="id_user_input" class="visually-hidden">User input:</label>
+        <input type="text" name="user_input" placeholder="Ask your question..." required id="id_user_input">
         <button type="submit" class="send-button">Send</button>
     </form>
 </div>
@@ -25,7 +29,7 @@
             currentHTML += fullHTML.charAt(index);
             typedTextDiv.innerHTML = currentHTML;
             index++;
-            setTimeout(typeWriter, 5); // typing speed
+            setTimeout(typeWriter, 5);
         }
     }
 
@@ -36,25 +40,27 @@
     body {
         margin: 0;
         padding: 0;
-        background-color: #343541;
+        background-color: white;
         color: #fff;
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 1rem;
     }
 
     .chat-container {
+        z-index: -1;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
         align-items: center;
         min-height: 100vh;
-        padding: 20px;
+        padding: 16px;
+        padding-bottom: 15%;
         box-sizing: border-box;
     }
 
     .chat-window {
-        width: 100%;
-        max-width: 700px;
-        background-color: #444654;
+        width: 90%;
+        background-color: #006400;
         border-radius: 12px;
         padding: 20px;
         margin-bottom: 20px;
@@ -65,12 +71,12 @@
     .message {
         margin-bottom: 20px;
         padding: 15px;
-        background-color: #3e3f4b;
+        background-color: #006400;
         border-radius: 10px;
     }
 
     .message.bot {
-        background-color: #444654;
+        background-color: #006400;
     }
 
     .sender {
@@ -87,43 +93,56 @@
 
     .input-area {
         width: 100%;
-        max-width: 700px;
         display: flex;
-        gap: 10px;
         flex-direction: column;
+        align-items: center;
+        gap: 12px;
     }
 
-    .input-area p {
-        margin: 0;
+    .input-area input {
+        width: 90%;
+        font-size: 1rem;
+        padding: 14px 16px;
     }
 
     .send-button {
-        align-self: flex-end;
-        padding: 10px 20px;
-        background-color: #10a37f;
+        width: 100%;
+        padding: 14px;
+        background-color: #006400;
         color: white;
         border: none;
-        border-radius: 8px;
-        font-size: 16px;
+        border-radius: 10px;
+        font-size: 1rem;
         cursor: pointer;
         transition: background-color 0.3s;
     }
 
     .send-button:hover {
-        background-color: #0d8c6d;
+        background-color:rgb(2, 133, 2);
     }
 
     input, textarea, select {
-        width: 100%;
-        padding: 10px;
-        border: none;
-        border-radius: 8px;
-        background-color: #565869;
-        color: white;
+        width: 70%;
+        border-width: 3px;
+        border-style: solid;
+        border-radius: 10px;
+        background-color: white;
+        color: black;
     }
 
     input:focus, textarea:focus, select:focus {
         outline: none;
-        background-color: #6b6d81;
+        background-color: white;
+    }
+
+    .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
     }
 </style>
