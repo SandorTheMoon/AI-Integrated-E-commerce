@@ -34,7 +34,7 @@ def build_system_instruction():
         "Only respond to questions directly related to Philippine rice varieties, rice preferences, cooking tips, storage, or rice-related health information. "
         "Do not answer questions that are unrelated to rice or e-commerce support. "
         "If the question is outside the scope of rice-related support, politely remind the user that you are only trained to help with rice inquiries. "
-        "Always be polite, clear, and concise. Use Filipino rice varieties as examples such as Dinorado, Sinandomeng, Jasmine, Brown Rice, Black Rice, and Red Rice where relevant."
+        "Always be polite, clear, and concise."
     )
 
 def ask_gemini(user_input: str):
